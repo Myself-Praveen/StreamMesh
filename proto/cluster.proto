@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package cluster;
+option go_package = "github.com/Myself-Praveen/StreamMesh/internal/grpc/pb";
+
+// ClusterService handles inter-node communication
+service ClusterService {
+  // Gossip allows nodes to exchange topology information
+  rpc Gossip(GossipMessage) returns (GossipReply) {}
+  
+  // StreamTelemetry allows streaming metrics between nodes
+  rpc StreamTelemetry(stream TelemetryData) returns (TelemetryAck) {}
+  
+  // PublishMessage provides an alternative fan-out mechanism to Redis
+  rpc PublishMessage(PublishRequest) returns (PublishReply) {}
+}
+
+message NodeInfo {
+  string id = 1;
+  string hostname = 2;
+  int64 start_time = 3;
+}
+
+message GossipMessage {
+  NodeInfo sender = 1;
+  repeated NodeInfo known_nodes = 2;
+}
+
+message GossipReply {
+  bool success = 1;
+  repeated NodeInfo known_nodes = 2;
+}
+
+message TelemetryData {
+  string node_id = 1;
+  int64 active_connections = 2;
+  double messages_per_second = 3;
+  double p99_latency_ms = 4;
+}
+
+message TelemetryAck {
+  bool received = 1;
+}
+
+message PublishRequest {
+  string topic = 1;
+  bytes payload = 2;
+  string sender_node_id = 3;
+  string envelope_id = 4;
+}
+
+message PublishReply {
+  bool success = 1;
+  string error = 2;
+}
