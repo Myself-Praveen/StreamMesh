@@ -48,7 +48,9 @@ func (p *Pruner) prune() {
 	for _, conn := range connections {
 		if now.Sub(conn.GetLastPing()) > p.timeout {
 			logger.Log.Warn("Pruning zombie connection", zap.String("id", conn.ID))
-			conn.Conn.Close() // This will trigger the read pump to return, unregistering the conn
+			if conn.Conn != nil {
+				conn.Conn.Close() // This will trigger the read pump to return, unregistering the conn
+			}
 			pruned++
 		}
 	}
