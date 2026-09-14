@@ -1,0 +1,10 @@
+server:
+  port: "8080"
+  env: "development"
+
+redis:
+  url: "redis:6379"
+
+websocket:
+  heartbeat_interval: 30 # seconds
+  max_message_size: 4096 # bytes
