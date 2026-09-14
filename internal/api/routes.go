@@ -3,8 +3,8 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"time"
-
+	"github.com/Myself-Praveen/StreamMesh/internal/auth"
+	"github.com/Myself-Praveen/StreamMesh/internal/config"
 	"github.com/Myself-Praveen/StreamMesh/internal/logger"
 	"github.com/Myself-Praveen/StreamMesh/internal/ratelimit"
 	"github.com/Myself-Praveen/StreamMesh/internal/ws"
@@ -30,6 +30,25 @@ func SetupRoutes(manager *ws.Manager, msgHandler *ws.MessageHandler) *http.Serve
 			logger.Log.Warn("IP connection rate limit exceeded", zap.String("ip", ip))
 			http.Error(w, "Too many connection attempts", http.StatusTooManyRequests)
 			return
+		}
+
+		if config.AppConfig.Auth.Enabled {
+			tokenString := r.URL.Query().Get("token")
+			if tokenString == "" {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			validator := auth.NewJWTValidator(config.AppConfig.Auth.JWTSecret)
+			claims, err := validator.ValidateToken(tokenString)
+			if err != nil {
+				logger.Log.Warn("Invalid JWT token", zap.Error(err), zap.String("ip", ip))
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+			
+			// Could attach claims to context here if needed
+			_ = claims
 		}
 
 		conn, err := ws.UpgradeHandler(w, r)

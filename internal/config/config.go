@@ -23,6 +23,10 @@ type Config struct {
 			Burst             int `mapstructure:"burst"`
 		} `mapstructure:"rate_limit"`
 	} `mapstructure:"websocket"`
+	Auth struct {
+		Enabled   bool   `mapstructure:"enabled"`
+		JWTSecret string `mapstructure:"jwt_secret"`
+	} `mapstructure:"auth"`
 }
 
 var AppConfig *Config

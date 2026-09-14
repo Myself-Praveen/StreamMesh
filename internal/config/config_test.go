@@ -20,6 +20,9 @@ websocket:
   rate_limit:
     messages_per_second: 100
     burst: 200
+auth:
+  enabled: true
+  jwt_secret: "test_secret"
 `), 0644)
 	defer os.RemoveAll("configs")
 
