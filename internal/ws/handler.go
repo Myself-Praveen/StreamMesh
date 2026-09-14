@@ -1,7 +1,10 @@
 package ws
 
 import (
+	"time"
+
 	"github.com/Myself-Praveen/StreamMesh/internal/logger"
+	"github.com/Myself-Praveen/StreamMesh/internal/telemetry"
 	"go.uber.org/zap"
 )
 
@@ -64,9 +67,11 @@ func (h *MessageHandler) HandleMessage(conn *Connection, data []byte) {
 
 	case TypePublish:
 		// Payload is raw JSON in the envelope
+		start := time.Now()
 		if err := h.router.Publish(env.Topic, env.Payload); err != nil {
 			logger.Log.Error("Failed to publish message", zap.Error(err), zap.String("topic", env.Topic))
 		}
+		telemetry.GlobalLatencyHistogram.Record(float64(time.Since(start).Milliseconds()))
 
 	case TypeHistory:
 		// TODO: handle getting history

@@ -2,6 +2,8 @@ package ws
 
 import (
 	"sync"
+
+	"github.com/Myself-Praveen/StreamMesh/internal/telemetry"
 )
 
 // Manager keeps track of all active WebSocket connections
@@ -22,13 +24,17 @@ func (m *Manager) Add(conn *Connection) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.connections[conn.ID] = conn
+	telemetry.GlobalCollector.IncActiveConnections()
 }
 
 // Remove removes a connection by its ID
 func (m *Manager) Remove(id string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	delete(m.connections, id)
+	if _, ok := m.connections[id]; ok {
+		delete(m.connections, id)
+		telemetry.GlobalCollector.DecActiveConnections()
+	}
 }
 
 // Get retrieves a connection by its ID

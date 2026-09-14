@@ -7,6 +7,7 @@ import (
 
 	"github.com/Myself-Praveen/StreamMesh/internal/logger"
 	"github.com/Myself-Praveen/StreamMesh/internal/redis"
+	"github.com/Myself-Praveen/StreamMesh/internal/telemetry"
 	"github.com/Myself-Praveen/StreamMesh/internal/ws"
 	"go.uber.org/zap"
 )
@@ -83,6 +84,14 @@ func (r *Router) PublishLocal(topic string, payload []byte) error {
 	}
 
 	logger.Log.Debug("Published message locally", zap.String("topic", topic), zap.Int("delivered", delivered))
+	
+	telemetry.GlobalCollector.RecordPublish()
+	telemetry.GlobalTopicTracker.RecordPublish(topic)
+	for i := 0; i < delivered; i++ {
+		telemetry.GlobalCollector.RecordDelivery()
+	}
+	telemetry.GlobalTopicTracker.RecordDelivery(topic, delivered)
+	
 	return nil
 }
 

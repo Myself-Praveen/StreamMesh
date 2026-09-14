@@ -22,6 +22,10 @@ func SetupRoutes(manager *ws.Manager, msgHandler *ws.MessageHandler) *http.Serve
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("OK"))
 	})
+	
+	// Metrics endpoints
+	mux.HandleFunc("/api/metrics", MetricsHandler)
+	mux.HandleFunc("/api/metrics/stream", MetricsStreamHandler)
 
 	ipLimiter := ratelimit.NewIPRateLimiter(10, 2.0) // Allow 10 burst, 2 per sec
 

@@ -2,6 +2,8 @@ package pubsub
 
 import (
 	"sync"
+	
+	"github.com/Myself-Praveen/StreamMesh/internal/telemetry"
 )
 
 // TopicRegistry manages all active topics and their subscribers
@@ -59,6 +61,7 @@ func (r *TopicRegistry) Subscribe(topicName, connID string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.Subscribers[connID] = true
+	telemetry.GlobalTopicTracker.SetSubscribers(topicName, len(t.Subscribers))
 }
 
 // Unsubscribe removes a connection ID from a topic
@@ -74,6 +77,7 @@ func (r *TopicRegistry) Unsubscribe(topicName, connID string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	delete(t.Subscribers, connID)
+	telemetry.GlobalTopicTracker.SetSubscribers(topicName, len(t.Subscribers))
 
 	// We could clean up empty topics here, but it might flap if clients
 	// disconnect and reconnect frequently. A periodic cleanup is better.
