@@ -17,6 +17,9 @@ redis:
 websocket:
   heartbeat_interval: 10
   max_message_size: 1024
+  rate_limit:
+    messages_per_second: 100
+    burst: 200
 `), 0644)
 	defer os.RemoveAll("configs")
 

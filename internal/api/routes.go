@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Myself-Praveen/StreamMesh/internal/logger"
+	"github.com/Myself-Praveen/StreamMesh/internal/ratelimit"
 	"github.com/Myself-Praveen/StreamMesh/internal/ws"
 	"go.uber.org/zap"
 )
@@ -20,8 +21,17 @@ func SetupRoutes(manager *ws.Manager, msgHandler *ws.MessageHandler) *http.Serve
 		_, _ = w.Write([]byte("OK"))
 	})
 
+	ipLimiter := ratelimit.NewIPRateLimiter(10, 2.0) // Allow 10 burst, 2 per sec
+
 	// WebSocket upgrade endpoint
 	mux.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		ip := ratelimit.GetIP(r)
+		if !ipLimiter.Allow(ip) {
+			logger.Log.Warn("IP connection rate limit exceeded", zap.String("ip", ip))
+			http.Error(w, "Too many connection attempts", http.StatusTooManyRequests)
+			return
+		}
+
 		conn, err := ws.UpgradeHandler(w, r)
 		if err != nil {
 			logger.Log.Error("Failed to upgrade connection", zap.Error(err))

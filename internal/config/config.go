@@ -18,6 +18,10 @@ type Config struct {
 	WebSocket struct {
 		HeartbeatInterval int `mapstructure:"heartbeat_interval"`
 		MaxMessageSize    int `mapstructure:"max_message_size"`
+		RateLimit         struct {
+			MessagesPerSecond int `mapstructure:"messages_per_second"`
+			Burst             int `mapstructure:"burst"`
+		} `mapstructure:"rate_limit"`
 	} `mapstructure:"websocket"`
 }
 

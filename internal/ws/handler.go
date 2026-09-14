@@ -33,6 +33,18 @@ func NewMessageHandler(manager *Manager, registry pubsubRegistry, router pubsubR
 
 // HandleMessage parses and processes a WebSocket message
 func (h *MessageHandler) HandleMessage(conn *Connection, data []byte) {
+	if !conn.Allow() {
+		logger.Log.Warn("Rate limit exceeded for connection", zap.String("id", conn.ID))
+		errEnv, _ := NewMessage(TypeError, "", "Rate limit exceeded", "")
+		if b, err := errEnv.Encode(); err == nil {
+			select {
+			case conn.Send <- b:
+			default:
+			}
+		}
+		return
+	}
+
 	env, err := ParseMessage(data)
 	if err != nil {
 		logger.Log.Warn("Invalid message format", zap.Error(err), zap.String("id", conn.ID))
