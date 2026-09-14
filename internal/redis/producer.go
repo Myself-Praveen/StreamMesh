@@ -9,9 +9,10 @@ import (
 
 // StreamMessage represents a message to be published to a Redis stream
 type StreamMessage struct {
-	Topic   string `json:"topic"`
-	Payload []byte `json:"payload"`
-	NodeID  string `json:"node_id"`
+	Topic      string `json:"topic"`
+	Payload    []byte `json:"payload"`
+	NodeID     string `json:"node_id"`
+	EnvelopeID string `json:"envelope_id"`
 }
 
 // ProduceMessage publishes a message to a Redis Stream

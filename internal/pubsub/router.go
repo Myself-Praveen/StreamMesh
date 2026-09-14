@@ -1,10 +1,12 @@
 package pubsub
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/Myself-Praveen/StreamMesh/internal/logger"
+	"github.com/Myself-Praveen/StreamMesh/internal/redis"
 	"github.com/Myself-Praveen/StreamMesh/internal/ws"
 	"go.uber.org/zap"
 )
@@ -15,16 +17,21 @@ type Router struct {
 	manager  *ws.Manager
 }
 
+// GlobalRouter is the default message router
+var GlobalRouter *Router
+
 // NewRouter creates a new local pub/sub router
 func NewRouter(registry *TopicRegistry, manager *ws.Manager) *Router {
-	return &Router{
+	router := &Router{
 		registry: registry,
 		manager:  manager,
 	}
+	GlobalRouter = router
+	return router
 }
 
-// Publish routes a message to all subscribers of a topic locally
-func (r *Router) Publish(topic string, payload []byte) error {
+// PublishLocal routes a message to all subscribers of a topic locally
+func (r *Router) PublishLocal(topic string, payload []byte) error {
 	subs := r.registry.GetSubscribers(topic)
 	if len(subs) == 0 {
 		return nil
@@ -67,6 +74,34 @@ func (r *Router) Publish(topic string, payload []byte) error {
 		}
 	}
 
-	logger.Log.Debug("Published message", zap.String("topic", topic), zap.Int("delivered", delivered))
+	logger.Log.Debug("Published message locally", zap.String("topic", topic), zap.Int("delivered", delivered))
 	return nil
+}
+
+// Publish routes a message to a topic (local and distributed)
+func (r *Router) Publish(topic string, payload []byte) error {
+	// Publish locally first for lower latency
+	err := r.PublishLocal(topic, payload)
+
+	// Publish to Redis if available for fan-out
+	if redis.Client != nil {
+		// In a real implementation we would extract the envelope ID from the payload
+		// or pass it explicitly to Publish(). For now we'll generate one if we don't have it.
+		// Actually, let's just pass a generated one. It will be useful for deduplication.
+		envID := fmt.Sprintf("env-%d", time.Now().UnixNano())
+
+		streamMsg := redis.StreamMessage{
+			Topic:      topic,
+			Payload:    payload,
+			NodeID:     redis.CurrentNode.ID,
+			EnvelopeID: envID,
+		}
+		// Using background context since this is asynchronous fire-and-forget
+		redisErr := redis.ProduceMessage(context.Background(), "streammesh:messages", streamMsg)
+		if redisErr != nil {
+			logger.Log.Error("Failed to publish to Redis stream", zap.Error(redisErr))
+		}
+	}
+
+	return err
 }
