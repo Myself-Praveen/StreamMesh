@@ -11,7 +11,7 @@ import (
 )
 
 // SetupRoutes configures the basic HTTP and WebSocket routes
-func SetupRoutes(manager *ws.Manager) *http.ServeMux {
+func SetupRoutes(manager *ws.Manager, msgHandler *ws.MessageHandler) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	// Health check endpoint
@@ -43,9 +43,7 @@ func SetupRoutes(manager *ws.Manager) *http.ServeMux {
 				logger.Log.Info("Client disconnected", zap.String("id", c.ID))
 			},
 			func(c *ws.Connection, msg []byte) {
-				// Process incoming message
-				// For now, just log it. Later, route to pub/sub engine.
-				logger.Log.Debug("Received message", zap.String("id", c.ID), zap.ByteString("msg", msg))
+				msgHandler.HandleMessage(c, msg)
 			},
 		)
 	})
