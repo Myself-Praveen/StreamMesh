@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  streammesh-node-1:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_URL=redis:6379
+      - NODE_ID=node-1
+      - PORT=8080
+    depends_on:
+      - redis
+    networks:
+      - streammesh-net
+
+  streammesh-node-2:
+    build: .
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_URL=redis:6379
+      - NODE_ID=node-2
+      - PORT=8081
+    depends_on:
+      - redis
+    networks:
+      - streammesh-net
+
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - streammesh-net
+
+networks:
+  streammesh-net:
+    driver: bridge
+
+volumes:
+  redis_data:
