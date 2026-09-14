@@ -63,4 +63,17 @@ func (h *MessageHandler) HandleMessage(conn *Connection, data []byte) {
 	default:
 		logger.Log.Warn("Unknown message type", zap.String("type", string(env.Type)))
 	}
+
+	// Send acknowledgment if requested
+	if env.ID != "" && env.Type != TypeAck {
+		ack, err := NewMessage(TypeAck, env.Topic, nil, env.ID)
+		if err == nil {
+			if b, err := ack.Encode(); err == nil {
+				select {
+				case conn.Send <- b:
+				default:
+				}
+			}
+		}
+	}
 }

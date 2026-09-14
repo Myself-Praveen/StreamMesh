@@ -7,7 +7,8 @@ import (
 
 func TestLoadConfig(t *testing.T) {
 	// Create a dummy config file for testing in the current directory
-	os.WriteFile("default.yaml", []byte(`
+	os.Mkdir("configs", 0755)
+	os.WriteFile("configs/default.yaml", []byte(`
 server:
   port: "9999"
   env: "test"
@@ -17,7 +18,7 @@ websocket:
   heartbeat_interval: 10
   max_message_size: 1024
 `), 0644)
-	defer os.Remove("default.yaml")
+	defer os.RemoveAll("configs")
 
 	// Set env var to override port
 	os.Setenv("SERVER_PORT", "8888")
