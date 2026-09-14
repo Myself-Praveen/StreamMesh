@@ -1,44 +1,38 @@
 version: '3.8'
 
 services:
-  streammesh-node-1:
-    build: .
-    ports:
-      - "8080:8080"
-    environment:
-      - REDIS_URL=redis:6379
-      - NODE_ID=node-1
-      - PORT=8080
-    depends_on:
-      - redis
-    networks:
-      - streammesh-net
-
-  streammesh-node-2:
-    build: .
-    ports:
-      - "8081:8081"
-    environment:
-      - REDIS_URL=redis:6379
-      - NODE_ID=node-2
-      - PORT=8081
-    depends_on:
-      - redis
-    networks:
-      - streammesh-net
-
   redis:
-    image: redis:7.2-alpine
+    image: redis:7-alpine
     ports:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    networks:
-      - streammesh-net
+    command: redis-server --appendonly yes
 
-networks:
-  streammesh-net:
-    driver: bridge
+  streammesh:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_ADDR=redis:6379
+      - SERVER_PORT=8080
+      - LOG_LEVEL=info
+      - NODE_ID=node-1
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - streammesh
+    restart: unless-stopped
 
 volumes:
   redis_data:

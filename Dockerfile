@@ -1,33 +1,23 @@
-FROM golang:1.26-alpine AS builder
+FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
 
-# Install git
-RUN apk add --no-cache git
-
-# Copy go.mod and go.sum (if it exists)
-COPY go.mod ./
-# COPY go.sum ./
+# Install dependencies
+COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy source code
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o streammesh ./cmd/streammesh
+# Build
+RUN CGO_ENABLED=0 GOOS=linux go build -o streammesh ./cmd/streammesh
 
-# Minimal runtime image
-FROM alpine:latest  
+# Final stage
+FROM alpine:3.19
 
-RUN apk --no-cache add ca-certificates tzdata
+WORKDIR /app
 
-WORKDIR /root/
-
-# Copy binary from builder
 COPY --from=builder /app/streammesh .
-
-# Copy config if any
-COPY --from=builder /app/configs ./configs
 
 EXPOSE 8080
 
