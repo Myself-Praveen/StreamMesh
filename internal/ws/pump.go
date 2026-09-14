@@ -9,20 +9,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const (
-	// Time allowed to write a message to the peer.
-	writeWait = 10 * time.Second
-
-	// Time allowed to read the next pong message from the peer.
-	pongWait = 60 * time.Second
-
-	// Send pings to peer with this period. Must be less than pongWait.
-	pingPeriod = (pongWait * 9) / 10
-
-	// Maximum message size allowed from peer.
-	maxMessageSize = 512 * 1024 // 512KB
-)
-
 var (
 	newline = []byte{'\n'}
 	space   = []byte{' '}
@@ -35,10 +21,12 @@ func (c *Connection) ReadPump(unregister func(*Connection), processMessage func(
 		c.Conn.Close()
 	}()
 
-	c.Conn.SetReadLimit(maxMessageSize)
-	_ = c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+	hbConfig := GetHeartbeatConfig()
+
+	c.Conn.SetReadLimit(hbConfig.MaxMessageSize)
+	_ = c.Conn.SetReadDeadline(time.Now().Add(hbConfig.PongWait))
 	c.Conn.SetPongHandler(func(string) error {
-		_ = c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+		_ = c.Conn.SetReadDeadline(time.Now().Add(hbConfig.PongWait))
 		c.UpdateLastPing()
 		return nil
 	})
@@ -58,7 +46,8 @@ func (c *Connection) ReadPump(unregister func(*Connection), processMessage func(
 
 // WritePump pumps messages from the hub to the websocket connection.
 func (c *Connection) WritePump() {
-	ticker := time.NewTicker(pingPeriod)
+	hbConfig := GetHeartbeatConfig()
+	ticker := time.NewTicker(hbConfig.PingPeriod)
 	defer func() {
 		ticker.Stop()
 		c.Conn.Close()
@@ -66,7 +55,7 @@ func (c *Connection) WritePump() {
 	for {
 		select {
 		case message, ok := <-c.Send:
-			_ = c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = c.Conn.SetWriteDeadline(time.Now().Add(hbConfig.WriteWait))
 			if !ok {
 				// The hub closed the channel.
 				_ = c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
@@ -90,7 +79,7 @@ func (c *Connection) WritePump() {
 				return
 			}
 		case <-ticker.C:
-			_ = c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			_ = c.Conn.SetWriteDeadline(time.Now().Add(hbConfig.WriteWait))
 			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
