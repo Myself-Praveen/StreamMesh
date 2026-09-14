@@ -14,6 +14,7 @@ type TopicRegistry struct {
 type Topic struct {
 	Name        string
 	Subscribers map[string]bool // map of Connection IDs
+	History     *HistoryBuffer
 	mu          sync.RWMutex
 }
 
@@ -46,6 +47,7 @@ func (r *TopicRegistry) getOrCreateTopic(name string) *Topic {
 	t = &Topic{
 		Name:        name,
 		Subscribers: make(map[string]bool),
+		History:     NewHistoryBuffer(100), // Default capacity 100
 	}
 	r.topics[name] = t
 	return t

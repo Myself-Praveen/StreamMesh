@@ -45,6 +45,10 @@ func (r *Router) Publish(topic string, payload []byte) error {
 		return err
 	}
 
+	// Add to topic history
+	t := r.registry.getOrCreateTopic(topic)
+	t.History.Add(b)
+
 	delivered := 0
 	for _, connID := range subs {
 		conn, ok := r.manager.Get(connID)
