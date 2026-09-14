@@ -1,0 +1,33 @@
+# Binaries
+/bin/
+/dist/
+streammesh
+
+# Go
+/vendor/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+cover.out
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Env
+.env
+
+# MacOS
+.DS_Store
+
+# Frontend
+node_modules/
+.next/
+out/
+build/
