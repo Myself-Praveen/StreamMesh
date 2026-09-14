@@ -24,8 +24,9 @@ type Config struct {
 		} `mapstructure:"rate_limit"`
 	} `mapstructure:"websocket"`
 	Auth struct {
-		Enabled   bool   `mapstructure:"enabled"`
-		JWTSecret string `mapstructure:"jwt_secret"`
+		Enabled   bool     `mapstructure:"enabled"`
+		JWTSecret string   `mapstructure:"jwt_secret"`
+		APIKeys   []string `mapstructure:"api_keys"`
 	} `mapstructure:"auth"`
 }
 

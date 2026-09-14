@@ -23,6 +23,9 @@ websocket:
 auth:
   enabled: true
   jwt_secret: "test_secret"
+  api_keys:
+    - "test_key_1"
+    - "test_key_2"
 `), 0644)
 	defer os.RemoveAll("configs")
 

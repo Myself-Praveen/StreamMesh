@@ -3,6 +3,8 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"time"
+
 	"github.com/Myself-Praveen/StreamMesh/internal/auth"
 	"github.com/Myself-Praveen/StreamMesh/internal/config"
 	"github.com/Myself-Praveen/StreamMesh/internal/logger"
@@ -34,21 +36,37 @@ func SetupRoutes(manager *ws.Manager, msgHandler *ws.MessageHandler) *http.Serve
 
 		if config.AppConfig.Auth.Enabled {
 			tokenString := r.URL.Query().Get("token")
-			if tokenString == "" {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
-
-			validator := auth.NewJWTValidator(config.AppConfig.Auth.JWTSecret)
-			claims, err := validator.ValidateToken(tokenString)
-			if err != nil {
-				logger.Log.Warn("Invalid JWT token", zap.Error(err), zap.String("ip", ip))
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
+			apiKeyString := r.URL.Query().Get("api_key")
+			
+			authorized := false
+			
+			// Check JWT token
+			if tokenString != "" {
+				validator := auth.NewJWTValidator(config.AppConfig.Auth.JWTSecret)
+				claims, err := validator.ValidateToken(tokenString)
+				if err == nil {
+					authorized = true
+					_ = claims // Could attach to context
+				} else {
+					logger.Log.Debug("JWT validation failed", zap.Error(err), zap.String("ip", ip))
+				}
 			}
 			
-			// Could attach claims to context here if needed
-			_ = claims
+			// Check API key if not authorized yet
+			if !authorized && apiKeyString != "" {
+				keyValidator := auth.NewAPIKeyValidator(config.AppConfig.Auth.APIKeys)
+				if keyValidator.ValidateKey(apiKeyString) {
+					authorized = true
+				} else {
+					logger.Log.Debug("API Key validation failed", zap.String("ip", ip))
+				}
+			}
+
+			if !authorized {
+				logger.Log.Warn("Unauthorized access attempt", zap.String("ip", ip))
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
 		}
 
 		conn, err := ws.UpgradeHandler(w, r)
