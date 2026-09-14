@@ -28,6 +28,7 @@ func LoadConfig() error {
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("./configs")
 	viper.AddConfigPath("../../configs")
+	viper.AddConfigPath(".")
 
 	// Allow overriding via environment variables (e.g., REDIS_URL)
 	viper.AutomaticEnv()

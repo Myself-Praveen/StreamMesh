@@ -1,8 +1,6 @@
 package ws
 
 import (
-	"encoding/json"
-
 	"github.com/Myself-Praveen/StreamMesh/internal/logger"
 	"go.uber.org/zap"
 )
