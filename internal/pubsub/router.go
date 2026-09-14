@@ -17,6 +17,14 @@ type Router struct {
 	manager  *ws.Manager
 }
 
+// ClusterPublisher interface for broadcasting messages across nodes
+type ClusterPublisher interface {
+	BroadcastMessage(topic string, payload []byte, envelopeID string)
+}
+
+// GlobalClusterPublisher is an optional gRPC publisher
+var GlobalClusterPublisher ClusterPublisher
+
 // GlobalRouter is the default message router
 var GlobalRouter *Router
 
@@ -83,13 +91,12 @@ func (r *Router) Publish(topic string, payload []byte) error {
 	// Publish locally first for lower latency
 	err := r.PublishLocal(topic, payload)
 
-	// Publish to Redis if available for fan-out
-	if redis.Client != nil {
-		// In a real implementation we would extract the envelope ID from the payload
-		// or pass it explicitly to Publish(). For now we'll generate one if we don't have it.
-		// Actually, let's just pass a generated one. It will be useful for deduplication.
-		envID := fmt.Sprintf("env-%d", time.Now().UnixNano())
-
+	// Publish to gRPC Publisher if available
+	envID := fmt.Sprintf("env-%d", time.Now().UnixNano())
+	if GlobalClusterPublisher != nil {
+		GlobalClusterPublisher.BroadcastMessage(topic, payload, envID)
+	} else if redis.Client != nil {
+		// Fallback to Redis stream for fan-out
 		streamMsg := redis.StreamMessage{
 			Topic:      topic,
 			Payload:    payload,
