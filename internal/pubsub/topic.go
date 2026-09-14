@@ -102,3 +102,17 @@ func (r *TopicRegistry) GetSubscribers(topicName string) []string {
 	}
 	return subs
 }
+
+// GetAllTopics returns all topics and their subscriber counts
+func (r *TopicRegistry) GetAllTopics() map[string]int {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	
+	result := make(map[string]int, len(r.topics))
+	for name, t := range r.topics {
+		t.mu.RLock()
+		result[name] = len(t.Subscribers)
+		t.mu.RUnlock()
+	}
+	return result
+}

@@ -66,3 +66,27 @@ func RegisterNode(ctx context.Context) {
 		}
 	}()
 }
+
+// GetActiveNodes returns all currently active nodes
+func GetActiveNodes(ctx context.Context) []Node {
+	if Client == nil {
+		return []Node{CurrentNode}
+	}
+
+	keys, err := Client.Keys(ctx, "streammesh:node:*").Result()
+	if err != nil || len(keys) == 0 {
+		return []Node{CurrentNode}
+	}
+
+	nodes := make([]Node, 0, len(keys))
+	for _, key := range keys {
+		data, err := Client.Get(ctx, key).Bytes()
+		if err == nil {
+			var n Node
+			if json.Unmarshal(data, &n) == nil {
+				nodes = append(nodes, n)
+			}
+		}
+	}
+	return nodes
+}

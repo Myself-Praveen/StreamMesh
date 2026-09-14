@@ -8,13 +8,14 @@ import (
 	"github.com/Myself-Praveen/StreamMesh/internal/auth"
 	"github.com/Myself-Praveen/StreamMesh/internal/config"
 	"github.com/Myself-Praveen/StreamMesh/internal/logger"
+	"github.com/Myself-Praveen/StreamMesh/internal/pubsub"
 	"github.com/Myself-Praveen/StreamMesh/internal/ratelimit"
 	"github.com/Myself-Praveen/StreamMesh/internal/ws"
 	"go.uber.org/zap"
 )
 
 // SetupRoutes configures the basic HTTP and WebSocket routes
-func SetupRoutes(manager *ws.Manager, msgHandler *ws.MessageHandler) *http.ServeMux {
+func SetupRoutes(manager *ws.Manager, msgHandler *ws.MessageHandler, registry *pubsub.TopicRegistry, router *pubsub.Router) http.Handler {
 	mux := http.NewServeMux()
 
 	// Health check endpoint
@@ -26,6 +27,13 @@ func SetupRoutes(manager *ws.Manager, msgHandler *ws.MessageHandler) *http.Serve
 	// Metrics endpoints
 	mux.HandleFunc("/api/metrics", MetricsHandler)
 	mux.HandleFunc("/api/metrics/stream", MetricsStreamHandler)
+	
+	// Admin endpoints
+	adminHandler := NewAdminHandler(manager, registry, router)
+	mux.HandleFunc("/api/admin/channels", adminHandler.HandleChannels)
+	mux.HandleFunc("/api/admin/connections", adminHandler.HandleConnections)
+	mux.HandleFunc("/api/admin/cluster", adminHandler.HandleCluster)
+	mux.HandleFunc("/api/admin/publish", adminHandler.HandlePublish)
 
 	ipLimiter := ratelimit.NewIPRateLimiter(10, 2.0) // Allow 10 burst, 2 per sec
 
@@ -99,5 +107,5 @@ func SetupRoutes(manager *ws.Manager, msgHandler *ws.MessageHandler) *http.Serve
 		)
 	})
 
-	return mux
+	return Chain(mux, CORSMiddleware, LoggerMiddleware)
 }
